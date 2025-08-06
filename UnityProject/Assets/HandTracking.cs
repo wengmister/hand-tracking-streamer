@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 public enum HandSide { Left, Right }
 
-public class HandJointAnglesLogger : MonoBehaviour
+public class HandLandmarkLogger : MonoBehaviour
 {
     [SerializeField]
     private bool _logToHUD = true;
@@ -26,16 +26,13 @@ public class HandJointAnglesLogger : MonoBehaviour
     public int remotePort = 9000; // Port to send data to
     private UdpClient udpClient;
     private IPEndPoint remoteEndPoint;
-    
-    // Add reference to wrist joint index
-    private const int WRIST_JOINT_INDEX = 0; // Typically the wrist is joint 0 in Oculus hand tracking
 
     private void Start()
     {
         _hand = GetComponent<IHand>();
         if (_hand == null)
         {
-            LogHUD("HandJointAnglesLogger requires a component that implements IHand on the same GameObject");
+            LogHUD("HandLandmarkLogger requires a component that implements IHand on the same GameObject");
             enabled = false;
             return;
         }
@@ -70,7 +67,7 @@ public class HandJointAnglesLogger : MonoBehaviour
             if (_timer >= _logFrequency)
             {
                 _timer = 0f;
-                LogJointAngles();
+                LogHandLandmarks();
                 LogWristData(); // Add logging of wrist data
             }
         }
@@ -106,10 +103,14 @@ public class HandJointAnglesLogger : MonoBehaviour
             // Log to HUD
             LogHUD(displayMessage);
             
-            // Build CSV message for UDP with quaternion values
+            // Get left hand fist state
+            string leftFistState = LeftHandFistDetector.LeftHandState;
+            
+            // Build CSV message for UDP with quaternion values and left fist state
             string csvMessage = $"{handSide} wrist:";
             csvMessage += $", {wristPosition.x:F3}, {wristPosition.y:F3}, {wristPosition.z:F3}";
             csvMessage += $", {wristRotation.x:F3}, {wristRotation.y:F3}, {wristRotation.z:F3}, {wristRotation.w:F3}";
+            csvMessage += $", leftFist: {leftFistState.ToLower()}";
             
             // Send over UDP
             SendUdpMessage(csvMessage);
@@ -121,10 +122,9 @@ public class HandJointAnglesLogger : MonoBehaviour
     }
 
     /// <summary>
-    /// Computes the joint angles, logs detailed output to the HUD,
-    /// and broadcasts only the 16 comma separated numeric values (with hand type) over UDP.
+    /// Logs 21 essential hand landmarks (excluding metacarpals) with their position data to the HUD and sends over UDP
     /// </summary>
-    private void LogJointAngles()
+    private void LogHandLandmarks()
     {
         if (!_hand.IsTrackedDataValid)
         {
@@ -132,196 +132,156 @@ public class HandJointAnglesLogger : MonoBehaviour
             return;
         }
 
-        if (_hand.GetJointPosesLocal(out ReadOnlyHandJointPoses jointPoses))
+        // Log basic hand info first
+        LogHUD($"{handSide} Hand - IsTracked: {_hand.IsTrackedDataValid}, IsConnected: {_hand.IsConnected}");
+
+        // Get local poses from wrist
+        if (_hand.GetJointPosesFromWrist(out ReadOnlyHandJointPoses localJointPoses))
         {
-            // Build the detailed display string for the HUD (using the original helper methods)
-            string displayMessage = handSide.ToString() + " hand Angles:\n";
-            displayMessage += GetThumbAngles(jointPoses);
-            displayMessage += GetFingerAngles(jointPoses, HandFinger.Index);
-            displayMessage += GetFingerAngles(jointPoses, HandFinger.Middle);
-            displayMessage += GetFingerAngles(jointPoses, HandFinger.Ring);
-            displayMessage += GetFingerAngles(jointPoses, HandFinger.Pinky);
-
-            // Build the UDP CSV string containing only the 16 numeric values.
-            List<float> udpAngles = new List<float>();
-
-            // --- Thumb (4 angles) ---
-            int[] thumbIndices = GetFingerJointIndices(HandFinger.Thumb);
-            if (thumbIndices.Length < 4)
+            LogHUD($"Local joints available: {localJointPoses.Count}");
+            
+            // Build display message for HUD showing ALL landmark positions for debugging
+            string displayMessage = $"{handSide} Hand Landmarks (Local Coordinates):\n";
+            
+            // Build CSV message for UDP with selected landmark positions
+            string csvMessage = $"{handSide} landmarks:";
+            
+            // Define the 6 joint indices for display (wrist and finger tips only)
+            int[] displayJoints = {
+                1,  // Wrist
+                5,  // ThumbTip
+                10, // IndexTip
+                15, // MiddleTip
+                20, // RingTip
+                24  // LittleTip
+            };
+            
+            // Define all 21 joint indices for UDP streaming (renumbered 0-20)
+            int[] streamedJoints = {
+                1,  // 0: Wrist
+                2,  // 1: ThumbMetacarpal
+                3,  // 2: ThumbProximal
+                4,  // 3: ThumbDistal
+                5,  // 4: ThumbTip
+                7,  // 5: IndexProximal
+                8,  // 6: IndexIntermediate
+                9,  // 7: IndexDistal
+                10, // 8: IndexTip
+                12, // 9: MiddleProximal
+                13, // 10: MiddleIntermediate
+                14, // 11: MiddleDistal
+                15, // 12: MiddleTip
+                17, // 13: RingProximal
+                18, // 14: RingIntermediate
+                19, // 15: RingDistal
+                20, // 16: RingTip
+                21, // 17: LittleProximal
+                22, // 18: LittleIntermediate
+                23, // 19: LittleDistal
+                24  // 20: LittleTip
+            };
+            
+            // Log ALL available local joints first for debugging
+            for (int j = 0; j < Math.Min(localJointPoses.Count, 30); j++)
             {
-                LogHUD("Insufficient joint data for Thumb");
-                return;
+                Vector3 localPos = localJointPoses[j].position;
+                LogHUD($"LocalJoint[{j}]: Pos({localPos.x:F4},{localPos.y:F4},{localPos.z:F4})");
             }
-            // Transition: CMC → MCP
-            Quaternion cmcToMcp = Quaternion.Inverse(jointPoses[thumbIndices[0]].rotation) * jointPoses[thumbIndices[1]].rotation;
-            Vector3 cmcToMcpEuler = cmcToMcp.eulerAngles;
-            float cmcMcpFlexion = NormalizeAngle(cmcToMcpEuler.x);
-            float cmcMcpAdduction = NormalizeAngle(cmcToMcpEuler.y);
-
-            // Transition: MCP → IP
-            Quaternion mcpToIp = Quaternion.Inverse(jointPoses[thumbIndices[1]].rotation) * jointPoses[thumbIndices[2]].rotation;
-            Vector3 mcpToIpEuler = mcpToIp.eulerAngles;
-            float mcpIpFlexion = NormalizeAngle(mcpToIpEuler.x);
-            float mcpIpAdduction = NormalizeAngle(mcpToIpEuler.y);
-
-            udpAngles.Add(cmcMcpFlexion);
-            udpAngles.Add(cmcMcpAdduction);
-            udpAngles.Add(mcpIpFlexion);
-            udpAngles.Add(mcpIpAdduction);
-
-            // --- Non-thumb fingers (Index, Middle, Ring, Pinky; 3 angles each) ---
-            HandFinger[] fingers = new HandFinger[] { HandFinger.Index, HandFinger.Middle, HandFinger.Ring, HandFinger.Pinky };
-            foreach (HandFinger finger in fingers)
+            
+            LogHUD($"=== Selected {displayJoints.Length} Key Landmarks (Wrist, Fingertips) ===");
+            
+            // Process display joints for logging
+            for (int i = 0; i < displayJoints.Length; i++)
             {
-                int[] indices = GetFingerJointIndices(finger);
-                if (indices.Length < 5)
+                int originalJointIndex = displayJoints[i];
+                int renumberedIndex = i; // Renumber: 0=Wrist, 1=ThumbTip, 2=IndexTip, 3=MiddleTip, 4=RingTip, 5=PinkyTip
+                
+                if (originalJointIndex < localJointPoses.Count)
                 {
-                    LogHUD("Insufficient joint data for " + finger.ToString());
-                    return;
+                    Vector3 localPosition = localJointPoses[originalJointIndex].position;
+                    
+                    string jointName = GetRenumberedJointName(renumberedIndex);
+                    displayMessage += $"{jointName}[{renumberedIndex}]: Pos({localPosition.x:F4},{localPosition.y:F4},{localPosition.z:F4})\n";
                 }
-                // MCP → PIP rotation
-                Quaternion mcpToPip = Quaternion.Inverse(jointPoses[indices[1]].rotation) * jointPoses[indices[2]].rotation;
-                Vector3 mcpEuler = mcpToPip.eulerAngles;
-                float mcpFlexion = NormalizeAngle(mcpEuler.x);
-                float mcpAdduction = NormalizeAngle(mcpEuler.y);
-
-                // PIP → DIP rotation (flexion only)
-                Quaternion pipToDip = Quaternion.Inverse(jointPoses[indices[2]].rotation) * jointPoses[indices[3]].rotation;
-                pipToDip.ToAngleAxis(out float pipAngle, out Vector3 pipAxis);
-                float pipFlexion = NormalizeAngle(pipAngle);
-                // Compensate by adding mcp flexion to pip flexion
-                pipFlexion += mcpFlexion;
-
-                udpAngles.Add(mcpFlexion);
-                udpAngles.Add(mcpAdduction);
-                udpAngles.Add(pipFlexion);
+                else
+                {
+                    displayMessage += $"Joint {renumberedIndex}: (ORIGINAL INDEX {originalJointIndex} OUT OF RANGE - Max: {localJointPoses.Count-1})\n";
+                }
             }
-
-            // Build the CSV string for UDP (hand type followed by 16 comma separated values)
-            string csvMessage = $"{handSide} hand:";
-            foreach (float angle in udpAngles)
+            
+            // Process all 21 joints for UDP streaming
+            for (int i = 0; i < streamedJoints.Length; i++)
             {
-                csvMessage += $", {angle:F1}";
+                int originalJointIndex = streamedJoints[i];
+                
+                if (originalJointIndex < localJointPoses.Count)
+                {
+                    Vector3 localPosition = localJointPoses[originalJointIndex].position;
+                    csvMessage += $", {localPosition.x:F4}, {localPosition.y:F4}, {localPosition.z:F4}";
+                }
+                else
+                {
+                    // Handle case where joint is not available
+                    csvMessage += ", 0.0000, 0.0000, 0.0000";
+                }
             }
-
-            // Display the detailed message on the HUD and send the CSV string over UDP.
+            
+            // Log to HUD and send over UDP
             LogHUD(displayMessage);
             SendUdpMessage(csvMessage);
         }
         else
         {
-            LogHUD("Failed to get joint poses");
+            LogHUD("Failed to get local joint poses");
         }
     }
 
     /// <summary>
-    /// Returns a multi-line string containing all thumb joint angles for display.
-    /// Each line is formatted as "JointName: Angle".
+    /// Returns a human-readable name for the original joint index
     /// </summary>
-    private string GetThumbAngles(ReadOnlyHandJointPoses jointPoses)
+    private string StreamedJointName(int jointIndex)
     {
-        int[] indices = GetFingerJointIndices(HandFinger.Thumb);
-        if (indices.Length < 4)
+        switch (jointIndex)
         {
-            return "Insufficient joint data for Thumb\n";
+            case 1: return "Wrist";
+            case 2: return "ThumbMetacarpal";
+            case 3: return "ThumbProximal";
+            case 4: return "ThumbDistal";
+            case 5: return "ThumbTip";
+            case 7: return "IndexProximal";
+            case 8: return "IndexIntermediate";
+            case 9: return "IndexDistal";
+            case 10: return "IndexTip";
+            case 12: return "MiddleProximal";
+            case 13: return "MiddleIntermediate";
+            case 14: return "MiddleDistal";
+            case 15: return "MiddleTip";
+            case 17: return "RingProximal";
+            case 18: return "RingIntermediate";
+            case 19: return "RingDistal";
+            case 20: return "RingTip";
+            case 21: return "LittleProximal";
+            case 22: return "LittleIntermediate";
+            case 23: return "LittleDistal";
+            case 24: return "PinkyTip";
+            default: return $"Joint{jointIndex}";
         }
-
-        // Transition: CMC → MCP
-        Quaternion cmcToMcp = Quaternion.Inverse(jointPoses[indices[0]].rotation) * jointPoses[indices[1]].rotation;
-        Vector3 cmcToMcpEuler = cmcToMcp.eulerAngles;
-        float cmcMcpFlexion = NormalizeAngle(cmcToMcpEuler.x);
-        float cmcMcpAdduction = NormalizeAngle(cmcToMcpEuler.y);
-
-        // Transition: MCP → IP
-        Quaternion mcpToIp = Quaternion.Inverse(jointPoses[indices[1]].rotation) * jointPoses[indices[2]].rotation;
-        Vector3 mcpToIpEuler = mcpToIp.eulerAngles;
-        float mcpIpFlexion = NormalizeAngle(mcpToIpEuler.x);
-        float mcpIpAdduction = NormalizeAngle(mcpToIpEuler.y);
-
-        string s = "";
-        s += $"Thumb CMC Flexion: {cmcMcpFlexion:F1}°\n";
-        s += $"Thumb CMC Adduction: {cmcMcpAdduction:F1}°\n";
-        s += $"Thumb MCP Flexion: {mcpIpFlexion:F1}°\n";
-        s += $"Thumb MCP Adduction: {mcpIpAdduction:F1}°\n";
-        return s;
     }
 
     /// <summary>
-    /// Returns a multi-line string containing joint angles for a non-thumb finger for display.
-    /// For non-thumb fingers, we compute:
-    /// - MCP→PIP rotation (using Euler angles for flexion and adduction)
-    /// - PIP→DIP rotation (using axis–angle for flexion)
-    /// Each line is formatted as "JointName: Angle".
+    /// Returns a human-readable name for the renumbered index (0-5)
     /// </summary>
-    private string GetFingerAngles(ReadOnlyHandJointPoses jointPoses, HandFinger finger)
+    private string GetRenumberedJointName(int renumberedIndex)
     {
-        int[] indices = GetFingerJointIndices(finger);
-        if (indices.Length < 5)
+        switch (renumberedIndex)
         {
-            return $"Insufficient joint data for {finger} finger\n";
-        }
-
-        // Compute MCP → PIP rotation
-        Quaternion mcpToPip = Quaternion.Inverse(jointPoses[indices[1]].rotation) * jointPoses[indices[2]].rotation;
-        Vector3 mcpEuler = mcpToPip.eulerAngles;
-        float mcpFlexion = NormalizeAngle(mcpEuler.x);
-        float mcpAdduction = NormalizeAngle(mcpEuler.y);
-
-        // Compute PIP → DIP rotation using axis–angle (flexion only)
-        Quaternion pipToDip = Quaternion.Inverse(jointPoses[indices[2]].rotation) * jointPoses[indices[3]].rotation;
-        pipToDip.ToAngleAxis(out float pipAngle, out Vector3 pipAxis);
-        float pipFlexion = NormalizeAngle(pipAngle);
-        // Compensate by adding mcp flexion to pip flexion
-        pipFlexion += mcpFlexion;
-
-        // Compute DIP -> TIP rotation using axis-angle (flexion only)
-        // Quaternion dipToTip = Quaternion.Inverse(jointPoses[indices[3]].rotation) * jointPoses[indices[4]].rotation;
-        // dipToTip.ToAngleAxis(out float tipAngle, out Vector3 tipAxis);  
-        // float dipFlexion = NormalizeAngle(tipAngle);
-
-        string s = "";
-        s += $"{finger} MCP Flexion: {mcpFlexion:F1}°\n";
-        s += $"{finger} MCP Adduction: {mcpAdduction:F1}°\n";
-        s += $"{finger} PIP Flexion: {pipFlexion:F1}°\n";
-        // s += $"{finger} DIP Flexion: {dipFlexion:F1}°\n";
-        return s;
-    }
-
-    /// <summary>
-    /// Normalizes an angle (in degrees) to the range [-180, 180].
-    /// </summary>
-    private float NormalizeAngle(float angle)
-    {
-        angle %= 360f;
-        if (angle > 180f)
-        {
-            angle -= 360f;
-        }
-        return angle;
-    }
-
-    /// <summary>
-    /// Returns joint indices for the given finger based on the standard Oculus hand skeleton.
-    /// For the thumb, we assume a 4-joint chain.
-    /// For non-thumb fingers, we assume a 5-joint chain.
-    /// Adjust these if your actual data uses different indexing.
-    /// </summary>
-    private int[] GetFingerJointIndices(HandFinger finger)
-    {
-        switch (finger)
-        {
-            case HandFinger.Thumb:
-                return new int[] { 1, 2, 3, 4 };
-            case HandFinger.Index:
-                return new int[] { 5, 6, 7, 8, 9 };
-            case HandFinger.Middle:
-                return new int[] { 10, 11, 12, 13, 14 };
-            case HandFinger.Ring:
-                return new int[] { 15, 16, 17, 18, 19 };
-            case HandFinger.Pinky:
-                return new int[] { 20, 21, 22, 23, 24 };
-            default:
-                return new int[0];
+            case 0: return "Wrist";
+            case 1: return "ThumbTip";
+            case 2: return "IndexTip";
+            case 3: return "MiddleTip";
+            case 4: return "RingTip";
+            case 5: return "PinkyTip";
+            default: return $"Landmark{renumberedIndex}";
         }
     }
 
@@ -329,7 +289,7 @@ public class HandJointAnglesLogger : MonoBehaviour
     /// Sends the provided message over UDP.
     /// </summary>
     void SendUdpMessage(string message)
-    {
+    { 
         try
         {
             byte[] data = Encoding.UTF8.GetBytes(message);
@@ -340,6 +300,8 @@ public class HandJointAnglesLogger : MonoBehaviour
             LogHUD("UDP Send Error: " + ex.Message);
         }
     }
+
+
 
     // Helper method to log messages to the HUD on the channel for the current hand side.
     private void LogHUD(string message)

@@ -41,6 +41,9 @@ public class LeftHandFistDetector : MonoBehaviour
     private UdpClient _udpClient;
     private IPEndPoint _remoteEndPoint;
     
+    // Static property to allow other scripts to access the left hand fist state
+    public static string LeftHandState { get; private set; } = "Unknown";
+    
     private void Start()
     {
         _hand = GetComponent<IHand>();
@@ -153,6 +156,7 @@ public class LeftHandFistDetector : MonoBehaviour
         if (state != _currentState)
         {
             _currentState = state;
+            LeftHandState = _currentState; // Update static property for other scripts to access
             LogHUD($"Fist State: {_currentState} (Bent fingers: {bentFingerCount}/5)");
             
             // Send UDP message

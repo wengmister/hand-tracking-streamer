@@ -10987,6 +10987,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _logToHUD: 1
   _logFrequency: 0.01
+  _visualizeWristArrow: 1
+  _arrowLength: 0.05
+  _arrowPrefab: {fileID: 0}
   handSide: 1
   remoteIP: 255.255.255.255
   remotePort: 9000
