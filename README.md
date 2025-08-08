@@ -1,5 +1,24 @@
-# Quest Wrist/Finger Tracker
- Project extension of [this hand tracker](https://github.com/NU-MECH-ENG-495/vr-hand-tracking/tree/main). This app tracks and streams right hand joint angles and wrist vectors + left hand fist state, and streams all data via UDP.
+# Quest Wrist/Finger Tracker-TCP
+ Project extension of [this hand tracker](https://github.com/NU-MECH-ENG-495/vr-hand-tracking/tree/main). This app tracks and streams right hand joint angles and wrist vectors + left hand fist state, and streams all data via ~~UDP~~ TCP via [adb](https://developer.android.com/tools/adb).
+
+## Prerequisite
+
+You will need `adb` for this build. You will need to plug in your device via USB to your workstation.
+
+## Bringup
+
+In terminal, verify that adb has your device identified
+```bash
+adb devices
+```
+
+If you see your device listed, proceed with
+```bash
+adb reverse tcp:8000 tcp:8000
+```
+Once `adb reverse` is up, set up your TCP server (python example provided under `/scripts`)
+
+Finally, open the VR app on Quest - you should see tracking data streaming through TCP
 
 ## Deployment
 
