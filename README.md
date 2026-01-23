@@ -2,9 +2,28 @@
  
 Meta Quest 3/3s VR App for tracking and streaming hand and wrist landmark telemetry.
 
+## What's New!
+
+<details>
+<summary>Click to expand changelog</summary>
+
+v1.0:
+- Added in-app menu to allow streaming configurations:
+  - Network protocol
+  - IP Address
+  - Port number
+  - Hand side
+
+- Added full bimanual tracking.
+- Added synthetic hand visualization on tracked hands.
+- Now available on SideQuest.
+
+</details>
+
+
 ## Deployment
 
-You can download the app with SideQuest for free, or directly upload `hand_tracking_streamer.apk` via ADB to your device.
+You can sideload the app with [SideQuest](https://sidequestvr.com/app/46236/hand-tracking-streamer) for free, or directly upload `hand_tracking_streamer.apk` via ADB to your device.
 
 >[!NOTE]
 > Before direct upload, make sure your device is set to [developer mode](https://developers.meta.com/horizon/documentation/native/android/mobile-device-setup/), and allow USB connection.
