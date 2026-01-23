@@ -7,7 +7,7 @@ Meta Quest 3/3s VR App for tracking and streaming hand and wrist landmark teleme
 <details>
 <summary>Click to expand changelog</summary>
 
-v1.0:
+v1.0.0:
 - Added in-app menu to allow streaming configurations:
   - Network protocol
   - IP Address
