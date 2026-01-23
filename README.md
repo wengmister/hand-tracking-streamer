@@ -1,8 +1,6 @@
 # Hand Tracking Streamer
  
-Quest VR App for tracking and streaming hand and wrist landmark telemetry.
- 
-Project extension of [this](https://github.com/NU-MECH-ENG-495/vr-hand-tracking/tree/main) hand tracking tool.
+Quest 3/3s VR App for tracking and streaming hand and wrist landmark telemetry.
 
 ## Deployment
 
@@ -35,3 +33,7 @@ If you find this app useful, please consider citing as:
             primaryClass={cs.RO},
             url={https://arxiv.org/abs/2509.14349}, 
       }
+
+
+## License
+Apache-2.0
