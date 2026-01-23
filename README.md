@@ -2,7 +2,7 @@
  
 Meta Quest 3/3s VR App for tracking and streaming hand and wrist landmark telemetry.
 
-## What's New!
+### What's New!
 
 <details>
 <summary>Click to expand changelog</summary>
