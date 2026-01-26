@@ -7,6 +7,10 @@ Meta Quest 3/3s VR App for tracking and streaming hand and wrist landmark teleme
 <details>
 <summary>Click to expand changelog</summary>
 
+v1.0.2:
+- Improved panel menu text readability
+- Hand tracking frequency is now set to MAX
+
 v1.0.1:
 - Fixed the issue where sometimes panel menu would spawn on the floor
 - Fixed missing splash screen
