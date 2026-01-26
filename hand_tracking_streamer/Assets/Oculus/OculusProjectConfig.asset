@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetDeviceTypes: 02000000030000000400000005000000
   allowOptional3DofHeadTracking: 0
-  handTrackingSupport: 1
-  handTrackingFrequency: 0
+  handTrackingSupport: 2
+  handTrackingFrequency: 2
   handTrackingVersion: 2
   anchorSupport: 1
   sharedAnchorSupport: 0
-  renderModelSupport: 0
+  renderModelSupport: 1
   trackedKeyboardSupport: 0
   bodyTrackingSupport: 0
   faceTrackingSupport: 0
@@ -40,6 +40,6 @@ MonoBehaviour:
   insightPassthroughEnabled: 0
   _insightPassthroughSupport: 1
   _processorFavor: 0
-  systemSplashScreen: {fileID: 0}
+  systemSplashScreen: {fileID: 2800000, guid: 7f0a376fd00df71448757a9ca96133c7, type: 3}
   systemSplashScreenType: 0
   _systemLoadingScreenBackground: 1
