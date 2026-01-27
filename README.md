@@ -41,6 +41,10 @@ Alternatively, you can build from source by loading `hand_tracking_streamer` pro
 >[!NOTE]
 > This app is built and tested on Unity 6000.0.65f1
 
+## Data Streaming
+
+See [CONNECTIONS](CONNECTIONS.md) page for detailed documentation on connections and data format. Additionally, 2 simple socket scripts are provided under [/scripts](/scripts) for quickly testing data streamed from your Quest device.
+
 ## Demo
 
 ![wrist tracker](https://github.com/user-attachments/assets/b3a4ae36-00b1-4843-97d1-21ca7184bcd2)
