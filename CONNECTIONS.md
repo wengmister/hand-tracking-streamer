@@ -6,6 +6,10 @@ This document describes how Hand Tracking Streamer (HTS) streams hand and wrist 
 
 HTS uses the OpenXR hand skeleton rig. Full details can be found in the [Meta documentation](https://developers.meta.com/horizon/documentation/unity/unity-handtracking-interactions/).
 
+
+<img width="1999" height="951" alt="OXR Hand" src="https://github.com/user-attachments/assets/b964ca21-3cd6-44c7-b225-be503ed17a65" />
+
+
 The full OpenXR hand skeleton has 29 joints, but many of them are static (palm, metacarpals, etc.) and are not streamed to save bandwidth. HTS sends the wrist plus 21 tracked joints per hand.
 
 Tracked joint indices:
