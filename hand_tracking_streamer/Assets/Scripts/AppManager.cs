@@ -13,6 +13,12 @@ public class AppManager : MonoBehaviour
     public TMP_Dropdown handDropdown;     // 0 = Both, 1 = Left, 2 = Right
     public GameObject menuPanel;          // To hide the menu after starting
 
+    [Header("Visual Settings")]
+    public Toggle visualizationToggle; // Drag a UI Toggle here from the inspector
+
+    // This property allows other scripts to check the toggle state easily
+    public bool ShowLandmarks => visualizationToggle != null && visualizationToggle.isOn;
+
     [Header("Interaction Settings")]
     [Tooltip("Drag your Left and Right Ray Building Blocks here.")]
     public GameObject[] rayInteractors;

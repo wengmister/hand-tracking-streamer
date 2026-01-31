@@ -23,6 +23,10 @@ public class HandLandmarkStreamer : MonoBehaviour
 
     private IHand _hand;
     private float _timer;
+
+    // Public Accessors
+    public IHand Hand => _hand; 
+    public HandSide Side => _handSide;
     
     // Networking
     private UdpClient _udpClient;
@@ -42,7 +46,7 @@ public class HandLandmarkStreamer : MonoBehaviour
         7, 8, 9, 10,         // Index
         12, 13, 14, 15,      // Middle
         17, 18, 19, 20,      // Ring
-        21, 22, 23, 24       // Pinky
+        22, 23, 24, 25       // Pinky
     };
 
     // Indices for the HUD Display (Wrist + Tips only)
@@ -51,7 +55,7 @@ public class HandLandmarkStreamer : MonoBehaviour
         10, // Index Tip
         15, // Middle Tip
         20, // Ring Tip
-        24  // Pinky Tip
+        25  // Pinky Tip
     };
 
     private void Start()
