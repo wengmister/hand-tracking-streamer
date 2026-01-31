@@ -33,10 +33,10 @@ Tracked joint indices:
 18, // 14: RingIntermediate
 19, // 15: RingDistal
 20, // 16: RingTip
-21, // 17: LittleProximal
-22, // 18: LittleIntermediate
-23, // 19: LittleDistal
-24  // 20: LittleTip
+22, // 17: LittleProximal
+23, // 18: LittleIntermediate
+24, // 19: LittleDistal
+25  // 20: LittleTip
 ```
 
 Tracked data are streamed as UTF‑8 CSV lines, with a leading label indicating side and type:

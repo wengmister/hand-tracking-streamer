@@ -7,6 +7,11 @@ Meta Quest 3/3s VR App for tracking and streaming hand and wrist landmark teleme
 <details>
 <summary>Click to expand changelog</summary>
 
+v1.0.3:
+- Added landmark visualization for tracked hands
+- Adjusted panel menu to include visualization toggle
+- Fixed the issue where index for little finger were shifted by one
+
 v1.0.2:
 - Improved panel menu text readability
 - Hand tracking frequency is now set to MAX
