@@ -1,6 +1,30 @@
-# Hand Tracking Streamer
- 
-Meta Quest 3/3s VR App for tracking and streaming hand and wrist landmark telemetry.
+<div align="center">
+  <img width="680" height="367" alt="splah image" src="https://github.com/user-attachments/assets/577c161d-488c-4fbc-8a3d-8ca9236f2006" />
+  <h3 align="center">
+    Meta Quest VR App for tracking and streaming hand and wrist landmark telemetry.
+  </h3>
+</div>
+<p align="center">
+
+  <a href="https://github.com/wengmister/hand-tracking-streamer/releases">
+    <img src="https://img.shields.io/github/v/release/wengmister/hand-tracking-streamer.svg?include_prereleases&sort=semver" alt="Releases">
+  </a>
+
+  <a href="https://sidequestvr.com/app/46236">
+   <img src="https://img.shields.io/badge/sideload-sidequest-FFD700?labelColor=grey" alt="SideQuest Release">
+  </a>
+
+  <a href="https://sidequestvr.com/app/46236">
+   <img src="https://img.shields.io/badge/download-horizon_store-FF5757?labelColor=grey" alt="SideQuest Release">
+  </a>
+
+  <a href="https://github.com/wengmister/hand-tracking-streamer/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg" alt="Apache 2.0">
+  </a>
+</p>
+
+**Hand Tracking Streamer** is a lightweight, high-fidelity hand telemetry utility that turns a Meta Quest headset into a precision controller for robotics teleoperation and motion capture. Built on the Meta Interaction SDK, it streams 21-landmark hand data and 6-DoF wrist pose to a PC in real time over Wi-Fi using UDP for ultra-low latency or TCP for reliable data logging. The app supports left, right, or dual-hand modes with in-headset configuration, and includes a live log console and phantom hand visualization for debugging. Data is sent as structured packets of joint positions and orientations in Unity world space, making it suitable for robot control, imitation learning, and gesture-based prototyping.
+
 
 ### What's New!
 
