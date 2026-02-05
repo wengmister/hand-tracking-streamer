@@ -23,6 +23,7 @@ public class HandLandmarkStreamer : MonoBehaviour
 
     private IHand _hand;
     private float _timer;
+    private float _nextSendTime;
 
     // Public Accessors
     public IHand Hand => _hand; 
@@ -30,11 +31,13 @@ public class HandLandmarkStreamer : MonoBehaviour
     
     // Networking
     private UdpClient _udpClient;
+    private IAsyncResult _udpReceiveResult;
     private TcpClient _tcpClient;
     private NetworkStream _tcpStream;
     private IPEndPoint _remoteEndPoint;
     private bool _isInitialized = false;
     private int _currentProtocol = -1; 
+    private AndroidJavaObject _wifiLock;
 
     // Optimization: Cache StringBuilders
     private StringBuilder _sbPacket = new StringBuilder(2048);
@@ -74,6 +77,7 @@ public class HandLandmarkStreamer : MonoBehaviour
     {
         if (_hand != null) _hand.WhenHandUpdated -= OnHandUpdated;
         Disconnect();
+        ReleaseWifiLock();
     }
 
     private void OnHandUpdated()
@@ -93,11 +97,14 @@ public class HandLandmarkStreamer : MonoBehaviour
         // 3. Init Network
         if (!_isInitialized) InitializeNetwork();
 
-        // 4. Rate Limiting
-        _timer += Time.deltaTime;
-        if (_timer >= _frequency)
+        // 4. Rate Limiting (stable pacing)
+        if (_nextSendTime <= 0f)
         {
-            _timer = 0f;
+            _nextSendTime = Time.unscaledTime;
+        }
+        if (Time.unscaledTime >= _nextSendTime)
+        {
+            _nextSendTime = Time.unscaledTime + _frequency;
             ProcessHandData();
         }
     }
@@ -185,6 +192,12 @@ public class HandLandmarkStreamer : MonoBehaviour
             {
                 _udpClient = new UdpClient();
                 _remoteEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+                // Only connect for unicast targets; broadcast connect can throw.
+                if (!_remoteEndPoint.Address.Equals(IPAddress.Broadcast))
+                {
+                    _udpClient.Connect(_remoteEndPoint);
+                    StartUdpReceive();
+                }
                 // Log success to the configured HUD source
                 LogHUD($"UDP Ready: {ip}:{port}");
             }
@@ -196,6 +209,7 @@ public class HandLandmarkStreamer : MonoBehaviour
                 LogHUD($"TCP Connected: {ip}:{port}");
             }
             _isInitialized = true;
+            AcquireWifiLock();
         }
         catch (Exception ex)
         {
@@ -229,12 +243,19 @@ public class HandLandmarkStreamer : MonoBehaviour
     {
         try
         {
-            if (_udpClient != null) { _udpClient.Close(); _udpClient = null; }
+            if (_udpClient != null)
+            {
+                _udpClient.Close();
+                _udpClient = null;
+                _udpReceiveResult = null;
+            }
             if (_tcpStream != null) { _tcpStream.Close(); _tcpStream = null; }
             if (_tcpClient != null) { _tcpClient.Close(); _tcpClient = null; }
         }
         catch { }
         _isInitialized = false;
+        _nextSendTime = 0f;
+        ReleaseWifiLock();
     }
 
     // --- UTILITY HELPERS ---
@@ -272,6 +293,85 @@ public class HandLandmarkStreamer : MonoBehaviour
         {
             // Use the specific HUD Source name instead of the HandSide
             LogManager.Instance.Log(_hudLogSource, msg);
+        }
+    }
+
+    private void AcquireWifiLock()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        try
+        {
+            using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            using var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+            using var wifiManager = activity.Call<AndroidJavaObject>("getSystemService", "wifi");
+            if (wifiManager == null) return;
+            // WIFI_MODE_FULL_HIGH_PERF = 3
+            _wifiLock = wifiManager.Call<AndroidJavaObject>("createWifiLock", 3, "HTS_WifiLock");
+            _wifiLock.Call("acquire");
+        }
+        catch (Exception)
+        {
+            // Best-effort: ignore lock errors.
+        }
+#endif
+    }
+
+    private void ReleaseWifiLock()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        try
+        {
+            if (_wifiLock != null)
+            {
+                _wifiLock.Call("release");
+                _wifiLock = null;
+            }
+        }
+        catch (Exception)
+        {
+            // Best-effort: ignore lock errors.
+        }
+#endif
+    }
+
+    private void StartUdpReceive()
+    {
+        if (_udpClient == null) return;
+        try
+        {
+            _udpReceiveResult = _udpClient.BeginReceive(OnUdpReceive, null);
+        }
+        catch (Exception)
+        {
+            // Best-effort: ignore receive errors.
+        }
+    }
+
+    private void OnUdpReceive(IAsyncResult ar)
+    {
+        if (_udpClient == null) return;
+        try
+        {
+            IPEndPoint any = new IPEndPoint(IPAddress.Any, 0);
+            _udpClient.EndReceive(ar, ref any);
+        }
+        catch (Exception)
+        {
+            // Ignore receive errors.
+        }
+        finally
+        {
+            if (_udpClient != null)
+            {
+                try
+                {
+                    _udpReceiveResult = _udpClient.BeginReceive(OnUdpReceive, null);
+                }
+                catch (Exception)
+                {
+                    // Best-effort: ignore restart errors.
+                }
+            }
         }
     }
 }
