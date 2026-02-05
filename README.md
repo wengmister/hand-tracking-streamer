@@ -1,6 +1,6 @@
 <div align="center">
-  <img width="680" height="367" alt="splah image" src="https://github.com/user-attachments/assets/577c161d-488c-4fbc-8a3d-8ca9236f2006" />
-  <h3 align="center">
+  <img width="1224" height="500" alt="HTS Logo" src="https://github.com/user-attachments/assets/30a4ac53-da86-4f7c-9b73-1d82046e3da9" />
+<h3 align="center">
     Meta Quest VR App for tracking and streaming hand and wrist landmark telemetry.
   </h3>
 </div>
