@@ -49,6 +49,8 @@ Right landmarks:, 0.0000, 0.0000, 0.0000, -0.0275, -0.0197, 0.0362, -0.0438, -0.
 - `Right wrist:`: 7 floats → `x, y, z, qx, qy, qz, qw`.
 - `Right landmarks:`: 63 floats → `[x, y, z] * 21` in the joint order listed above.
 
+>[!IMPORTANT]
+> Data streamed from HTS follows Unity's left-hand coordinate convention. For most applications, you will want to flip the incoming data's Y-axis for the right-hand coordinate convention.
 
 ## UDP connection
 
@@ -58,7 +60,7 @@ HTS can stream data via **wireless** UDP to a host on the same network as the Qu
 - You can change the target IP and port from the in‑game/network configuration menu.
 
 >[!NOTE]
-> UDP streaming performance (latency, packet loss, jitter) depends heavily on your local network conditions and traffic. For best results, use a stable Wi‑Fi network and avoid congested or high‑latency links.
+> UDP streaming performance (latency, packet loss, jitter and message batching) depends heavily on your local network conditions and traffic. For best results, use a stable Wi‑Fi network and avoid congested or high‑latency links.
 
 
 ## TCP connection

@@ -51,7 +51,10 @@ Alternatively, you can build from source by loading `hand_tracking_streamer` pro
 
 ## Data Streaming
 
-See [CONNECTIONS](CONNECTIONS.md) page for detailed documentation on connections and data format. Additionally, 2 simple socket scripts are provided under [/scripts](/scripts) for quickly testing data streamed from your Quest device.
+See [CONNECTIONS](CONNECTIONS.md) page for detailed documentation on connections and data format. 
+
+### Quick Start
+Not ready to teleop your robot yet? Check out the simple socket and the visualizer script provided under [/scripts](/scripts) for quickly testing data streamed from your device.
 
 ## Demo
 
