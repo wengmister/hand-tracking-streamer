@@ -302,6 +302,69 @@ def _set_axes_from_bounds(ax: plt.Axes, center: np.ndarray, limit: float) -> Non
         pass
 
 
+def _finger_segments(
+    wrist: np.ndarray, landmarks: np.ndarray
+) -> Tuple[Tuple[np.ndarray, np.ndarray], ...]:
+    """Return line segments for finger trees based on streamed indices."""
+    if landmarks.shape[0] >= 21:
+        # Landmarks include wrist at index 0 (as seen in sample data).
+        idx = landmarks
+        thumb = (1, 2, 3, 4)
+        index = (5, 6, 7, 8)
+        middle = (9, 10, 11, 12)
+        ring = (13, 14, 15, 16)
+        little = (17, 18, 19, 20)
+    else:
+        # Landmarks exclude wrist; indices start at ThumbMetacarpal.
+        idx = landmarks
+        thumb = (0, 1, 2, 3)
+        index = (4, 5, 6, 7)
+        middle = (8, 9, 10, 11)
+        ring = (12, 13, 14, 15)
+        little = (16, 17, 18, 19)
+    segments = []
+    # Thumb: wrist -> 1 -> 2 -> 3 -> 4
+    segments.append((wrist, idx[thumb[0]]))
+    segments.append((idx[thumb[0]], idx[thumb[1]]))
+    segments.append((idx[thumb[1]], idx[thumb[2]]))
+    segments.append((idx[thumb[2]], idx[thumb[3]]))
+    # Index: wrist -> 5 -> 6 -> 7 -> 8
+    segments.append((wrist, idx[index[0]]))
+    segments.append((idx[index[0]], idx[index[1]]))
+    segments.append((idx[index[1]], idx[index[2]]))
+    segments.append((idx[index[2]], idx[index[3]]))
+    # Middle: wrist -> 9 -> 10 -> 11 -> 12
+    segments.append((wrist, idx[middle[0]]))
+    segments.append((idx[middle[0]], idx[middle[1]]))
+    segments.append((idx[middle[1]], idx[middle[2]]))
+    segments.append((idx[middle[2]], idx[middle[3]]))
+    # Ring: wrist -> 13 -> 14 -> 15 -> 16
+    segments.append((wrist, idx[ring[0]]))
+    segments.append((idx[ring[0]], idx[ring[1]]))
+    segments.append((idx[ring[1]], idx[ring[2]]))
+    segments.append((idx[ring[2]], idx[ring[3]]))
+    # Little: wrist -> 17 -> 18 -> 19 -> 20
+    segments.append((wrist, idx[little[0]]))
+    segments.append((idx[little[0]], idx[little[1]]))
+    segments.append((idx[little[1]], idx[little[2]]))
+    segments.append((idx[little[2]], idx[little[3]]))
+    return tuple(segments)
+
+
+def _init_finger_lines(ax: plt.Axes, color: str) -> list:
+    lines = []
+    for _ in range(20):
+        (line,) = ax.plot([], [], [], color=color, linewidth=2)
+        lines.append(line)
+    return lines
+
+
+def _update_finger_lines(lines: list, segments) -> None:
+    for line, (start, end) in zip(lines, segments):
+        line.set_data([start[0], end[0]], [start[1], end[1]])
+        line.set_3d_properties([start[2], end[2]])
+
+
 def run_visualizer(
     protocol: str,
     host: str,
@@ -310,6 +373,7 @@ def run_visualizer(
     show_right: bool,
     axis_limit: float,
     alpha: float,
+    show_fingers: bool,
 ) -> None:
     """Run the matplotlib visualizer."""
     receiver = StreamReceiver(protocol=protocol, host=host, port=port)
@@ -332,6 +396,9 @@ def run_visualizer(
     left_wrist = ax.scatter([], [], [], c="#2D5E8D", s=60, marker="x")
     ax.scatter([0.0], [0.0], [0.0], c="#222222", s=40, marker="o")
     ax.legend(loc="upper right")
+
+    right_lines = _init_finger_lines(ax, color="#FFE692") if show_fingers else []
+    left_lines = _init_finger_lines(ax, color="#94FFDF") if show_fingers else []
 
     plt.show(block=False)
 
@@ -358,6 +425,13 @@ def run_visualizer(
                         [right_wrist_point[1]],
                         [right_wrist_point[2]],
                     )
+                if (
+                    show_fingers
+                    and right_points is not None
+                    and right_wrist_point is not None
+                ):
+                    segments = _finger_segments(right_wrist_point, right_points)
+                    _update_finger_lines(right_lines, segments)
 
             if show_left:
                 left_points = receiver.hands["left"].world_points()
@@ -375,6 +449,13 @@ def run_visualizer(
                         [left_wrist_point[1]],
                         [left_wrist_point[2]],
                     )
+                if (
+                    show_fingers
+                    and left_points is not None
+                    and left_wrist_point is not None
+                ):
+                    segments = _finger_segments(left_wrist_point, left_points)
+                    _update_finger_lines(left_lines, segments)
 
             points_for_bounds = []
             if cached_right_points is not None:
@@ -450,6 +531,11 @@ def main() -> None:
         default=0.1,
         help="EMA smoothing factor for dynamic scaling (default: 0.1).",
     )
+    parser.add_argument(
+        "--show-fingers",
+        action="store_true",
+        help="Render finger bone lines.",
+    )
     args = parser.parse_args()
 
     if args.left_only and args.right_only:
@@ -471,6 +557,7 @@ def main() -> None:
         show_right=show_right,
         axis_limit=args.axis_limit,
         alpha=args.alpha,
+        show_fingers=args.show_fingers,
     )
 
 
