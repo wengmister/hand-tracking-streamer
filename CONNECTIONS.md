@@ -52,20 +52,9 @@ Right landmarks:, 0.0000, 0.0000, 0.0000, -0.0275, -0.0197, 0.0362, -0.0438, -0.
 >[!IMPORTANT]
 > Data streamed from HTS follows Unity's left-hand coordinate convention. For most applications, you will want to flip the incoming data's Y-axis for the right-hand coordinate convention.
 
-## UDP connection
-
-HTS can stream data via **wireless** UDP to a host on the same network as the Quest headset.
-
-- Default target: `255.255.255.255:9000` (broadcast).
-- You can change the target IP and port from the in‑game/network configuration menu.
-
->[!NOTE]
-> UDP streaming performance (latency, packet loss, jitter and message batching) depends heavily on your local network conditions and traffic. For best results, use a stable Wi‑Fi network and avoid congested or high‑latency links.
-
-
 ## TCP connection
 
-HTS can also stream data via **wired** TCP using ADB. Connect your Quest to your machine with a data‑capable USB‑C cable.
+HTS can stream data via **wired** TCP using ADB. Connect your Quest to your machine with a data‑capable USB‑C cable.
 
 - Default target: `localhost:8000` via ADB reverse loopback.
 
@@ -83,6 +72,17 @@ You can verify that the reverse rule is active with:
 ```bash
 adb reverse --list
 ```
+
+## UDP connection
+
+HTS can also stream data via **wireless** UDP to a host on the same network as the Quest headset.
+
+- Default target: `255.255.255.255:9000` (broadcast).
+- You can change the target IP and port from the in‑game/network configuration menu.
+
+>[!IMPORTANT] 
+>Network Performance Notice UDP streaming depends heavily on your local network conditions. Specifically, Wi-Fi networks with high DTIM intervals may cause message batching (latency spikes) due to headset power-saving features (see Issue [#4](https://github.com/wengmister/hand-tracking-streamer/issues/4)).    
+>For the most reliable performance, consider using the wired TCP connection.
 
 ## Troubleshooting
 
