@@ -43,3 +43,6 @@ coverage.xml
 .vscode/
 *.swp
 *.swo
+
+# Unity build artifact
+*_DoNotShip

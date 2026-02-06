@@ -19,7 +19,7 @@
   </a>
 
   <a href="https://github.com/wengmister/hand-tracking-streamer/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg" alt="Apache 2.0">
+    <img src="https://img.shields.io/badge/license-Apache%20License%202.0-green.svg" alt="Apache 2.0">
   </a>
 </p>
 

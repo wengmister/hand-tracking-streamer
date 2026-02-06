@@ -214,7 +214,12 @@ public class AppManager : MonoBehaviour
         ClearError();
 
         // Re-enable UI and Rays for interaction
-        if (menuPanel != null) menuPanel.SetActive(true);
+        if (menuPanel != null) 
+        {
+            menuPanel.SetActive(true);
+            MenuRecenter recenterScript = FindFirstObjectByType<MenuRecenter>();
+            if (recenterScript != null) recenterScript.Recenter();
+        }
         ToggleRays(true);
 
         SendLog("Streaming stopped by user.");
