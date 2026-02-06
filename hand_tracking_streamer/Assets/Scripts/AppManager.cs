@@ -17,7 +17,10 @@ public class AppManager : MonoBehaviour
     
     [Header("Network Status References")]
     public TextMeshProUGUI networkStatusText; 
-    public Button btnStart;                   
+    public Button btnStart;                
+
+    [Header("Build Info")]
+    public TextMeshProUGUI versionText;   
 
     [Header("Visual Settings")]
     public Toggle visualizationToggle; 
@@ -51,6 +54,14 @@ public class AppManager : MonoBehaviour
 
     private void Start()
     {
+        // Automatically pulls from Project Settings > Player > Version
+        string version = Application.version; 
+        
+        if (versionText != null) 
+        {
+            versionText.text = $"v{version}";
+        }
+
         if (protocolDropdown != null)
         {
             protocolDropdown.onValueChanged.AddListener(OnProtocolChanged);
@@ -63,12 +74,19 @@ public class AppManager : MonoBehaviour
 
     private void Update()
     {
+        // If streaming, check if the user clicks the Left Menu Button
+        // This is the flat button with three lines on the Left Quest Controller
+        if (isStreaming && OVRInput.GetDown(OVRInput.Button.Start, OVRInput.Controller.LTouch))
+        {
+            StopStreaming(); 
+        }
+
         if (!isStreaming)
         {
             ValidateNetwork();
         }
     }
-
+    
     private void OnDestroy()
     {
         if (protocolDropdown != null)
@@ -194,9 +212,12 @@ public class AppManager : MonoBehaviour
     {
         isStreaming = false;
         ClearError();
-        if(menuPanel != null) menuPanel.SetActive(true);
+
+        // Re-enable UI and Rays for interaction
+        if (menuPanel != null) menuPanel.SetActive(true);
         ToggleRays(true);
-        SendLog("Streaming Stopped.");
+
+        SendLog("Streaming stopped by user.");
     }
 
     private void UpdateHandVisuals(int mode)
