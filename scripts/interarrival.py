@@ -122,6 +122,12 @@ def run_udp(host: str, port: int, report_interval: float, handshake: bool) -> No
 			except socket.timeout:
 				stats.maybe_report()
 				continue
+			# ignore heartbeat message
+			if len(lines) == 1 and lines[0] == "0":
+				continue
+				# logging.info("Received heartbeat from %s", addr)
+				# continue
+				# logging.info("Received message from %s: %d lines", addr, len(lines))
 			if handshake:
 				try:
 					sock.sendto(b"\x00", addr)

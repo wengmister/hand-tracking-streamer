@@ -1,47 +1,47 @@
 using UnityEngine;
 using TMPro; 
 using UnityEngine.UI;
+using System;
+using System.Net.Sockets;
 
 public class AppManager : MonoBehaviour
 {
     public static AppManager Instance { get; private set; } 
 
     [Header("UI References")]
-    public TMP_Dropdown protocolDropdown; // 0 = UDP, 1 = TCP
+    public TMP_Dropdown protocolDropdown; 
     public TMP_InputField ipInputField;
     public TMP_InputField portInputField;
-    public TMP_Dropdown handDropdown;     // 0 = Both, 1 = Left, 2 = Right
-    public GameObject menuPanel;          // To hide the menu after starting
+    public TMP_Dropdown handDropdown;     
+    public GameObject menuPanel;          
+    
+    [Header("Network Status References")]
+    public TextMeshProUGUI networkStatusText; 
+    public Button btnStart;                   
 
     [Header("Visual Settings")]
-    public Toggle visualizationToggle; // Drag a UI Toggle here from the inspector
-
-    // This property allows other scripts to check the toggle state easily
+    public Toggle visualizationToggle; 
     public bool ShowLandmarks => visualizationToggle != null && visualizationToggle.isOn;
 
     [Header("Interaction Settings")]
-    [Tooltip("Drag your Left and Right Ray Building Blocks here.")]
     public GameObject[] rayInteractors;
 
-    [Header("Visual Settings")]
-    [Tooltip("Drag '[BuildingBlock] Synthetic Left Hand' here")]
+    [Header("Hand Visuals")]
     public GameObject syntheticHandLeft;
-    [Tooltip("Drag '[BuildingBlock] Synthetic Right Hand' here")]
     public GameObject syntheticHandRight;
 
     [Header("Logging Settings")]
-    [Tooltip("Which Log Source should we push the 'Starting' message to?")]
     public string targetLogSource = "Left"; 
 
     [Header("Status")]
     public bool isStreaming = false;
+    private string _connectionErrorMessage = ""; 
+    private Color _statusColor = Color.green; // Persistent color cache
 
-    // --- Public Properties ---
     public string ServerIP { get; private set; }
     public int ServerPort { get; private set; }
-    public int SelectedProtocol { get; private set; } // 0 = UDP, 1 = TCP
-    public int SelectedHandMode { get; private set; } // 0 = Both, 1 = Left, 2 = Right
-    // -------------------------
+    public int SelectedProtocol { get; private set; } 
+    public int SelectedHandMode { get; private set; } 
 
     private void Awake()
     {
@@ -51,101 +51,151 @@ public class AppManager : MonoBehaviour
 
     private void Start()
     {
-        // NEW: Listen for dropdown changes to auto-fill IP/Port
         if (protocolDropdown != null)
         {
             protocolDropdown.onValueChanged.AddListener(OnProtocolChanged);
-            
-            // Trigger it once at startup so the fields aren't empty
             OnProtocolChanged(protocolDropdown.value);
+        }
+
+        ipInputField.onValueChanged.AddListener(delegate { ClearError(); });
+        portInputField.onValueChanged.AddListener(delegate { ClearError(); });
+    }
+
+    private void Update()
+    {
+        if (!isStreaming)
+        {
+            ValidateNetwork();
         }
     }
 
     private void OnDestroy()
     {
-        // Clean up listener to prevent memory leaks
         if (protocolDropdown != null)
         {
             protocolDropdown.onValueChanged.RemoveListener(OnProtocolChanged);
         }
     }
 
-    // --- NEW: Auto-fill Logic ---
     private void OnProtocolChanged(int index)
     {
-        // Index 0 = UDP, Index 1 = TCP
-        if (index == 0) 
+        ClearError();
+        if (index == 0) // UDP
         {
-            // UDP Defaults
             if (ipInputField != null) ipInputField.text = "255.255.255.255";
             if (portInputField != null) portInputField.text = "9000";
+            UpdateStatusUI("UDP Ready", Color.green, true);
         }
-        else if (index == 1)
+        else if (index == 1) // TCP
         {
-            // TCP Defaults
             if (ipInputField != null) ipInputField.text = "127.0.0.1";
             if (portInputField != null) portInputField.text = "8000";
+            StartCoroutine(QuickTCPCheck());
         }
     }
-    // ----------------------------
+
+    public void ClearError()
+    {
+        _connectionErrorMessage = "";
+        _statusColor = Color.green;
+    }
+
+    private void ValidateNetwork()
+    {
+        if (Application.internetReachability == NetworkReachability.NotReachable)
+        {
+            UpdateStatusUI("Error: No Active Network Connection", Color.red, false);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(_connectionErrorMessage))
+        {
+            // Uses the persistent color (Red or Yellow) set by the connection logic
+            UpdateStatusUI(_connectionErrorMessage, _statusColor, true);
+            return;
+        }
+
+        UpdateStatusUI("System Ready", Color.green, true);
+    }
+
+    private void UpdateStatusUI(string message, Color color, bool canStart)
+    {
+        _statusColor = color; // Cache the color for the Update loop
+        if (networkStatusText != null)
+        {
+            networkStatusText.text = message;
+            networkStatusText.color = color;
+        }
+
+        if (btnStart != null)
+        {
+            btnStart.interactable = canStart;
+            var breather = btnStart.GetComponent<UIButtonBreather>();
+            if (breather != null) breather.enabled = canStart;
+        }
+    }
 
     public void OnStartStreaming()
     {
-        // 1. Read the IP Address
+        ClearError();
         ServerIP = ipInputField.text;
-        if (string.IsNullOrEmpty(ServerIP))
+        
+        int parsedPort;
+        if (!int.TryParse(portInputField.text, out parsedPort))
         {
-            SendLog("Error: IP Address is empty!");
-            return; 
-        }
-
-        // 2. Read the Port Number
-        int portNumber;
-        if (!int.TryParse(portInputField.text, out portNumber))
-        {
-            SendLog("Error: Port number is invalid!");
+            UpdateStatusUI("Error: Port number is invalid!", Color.red, false);
             return;
         }
-        ServerPort = portNumber;
+        ServerPort = parsedPort;
 
-        // 3. Read Configs
         SelectedProtocol = protocolDropdown.value;
-        string protocolName = protocolDropdown.options[SelectedProtocol].text;
+        SelectedHandMode = handDropdown.value;
 
-        int handSelection = handDropdown.value;
-        string handName = handDropdown.options[handSelection].text;
-        SelectedHandMode = handSelection;
-
-        // 4. Push Success Message
-        string statusMsg = $"Starting Stream! \nIP: {ServerIP} \nPort: {ServerPort} \nProtocol: {protocolName} \nHands: {handName}";
-        SendLog(statusMsg);
-
-        // 5. Hide the Menu
-        if(menuPanel != null)
+        if (SelectedProtocol == 1) // TCP
         {
-            menuPanel.SetActive(false);
+            try 
+            {
+                using (TcpClient testClient = new TcpClient())
+                {
+                    IAsyncResult result = testClient.BeginConnect(ServerIP, ServerPort, null, null);
+                    bool success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+                    
+                    if (!success)
+                        throw new Exception("Timed Out");
+
+                    testClient.EndConnect(result);
+                }
+            }
+            catch (Exception)
+            {
+                _connectionErrorMessage = "Error: TCP Refused. Check ADB Reverse / Server.";
+                // Setting Color.red here is now persistent
+                UpdateStatusUI(_connectionErrorMessage, Color.red, true);
+                return; 
+            }
         }
 
-        // 6. DISABLE RAYS 
+        UpdateStatusUI("Streaming Active", Color.green, true);
+        
+        // 1. Show correct Hand and Protocol names in the HUD log
+        string protocolName = protocolDropdown.options[SelectedProtocol].text;
+        string handName = handDropdown.options[SelectedHandMode].text;
+        string statusMsg = $"Stream started! \nIP: {ServerIP} \nPort: {ServerPort} \nProtocol: {protocolName} \nHands: {handName}";
+        SendLog(statusMsg);
+        
+        if(menuPanel != null) menuPanel.SetActive(false);
+
         ToggleRays(false);
-
-        // 7. ENABLE SYNTHETIC HANDS
         UpdateHandVisuals(SelectedHandMode);
-
-        // 8. Flip the switch
         isStreaming = true;
     }
 
     public void StopStreaming()
     {
         isStreaming = false;
-        
-        // Show menu again
+        ClearError();
         if(menuPanel != null) menuPanel.SetActive(true);
-        
-        // Re-enable Rays
         ToggleRays(true);
-        
         SendLog("Streaming Stopped.");
     }
 
@@ -170,12 +220,47 @@ public class AppManager : MonoBehaviour
     private void SendLog(string message)
     {
         if (LogManager.Instance != null)
-        {
             LogManager.Instance.Log(targetLogSource, message);
-        }
         else
-        {
             Debug.Log($"[{targetLogSource}] {message}");
+    }
+
+    private System.Collections.IEnumerator QuickTCPCheck()
+    {
+        UpdateStatusUI("Checking ADB Tunnel...", Color.yellow, false);
+        
+        string targetIP = ipInputField.text;
+        int targetPort;
+        if (!int.TryParse(portInputField.text, out targetPort)) yield break;
+
+        bool success = false;
+        
+        var task = System.Threading.Tasks.Task.Run(() =>
+        {
+            try
+            {
+                using (TcpClient client = new TcpClient())
+                {
+                    var result = client.BeginConnect(targetIP, targetPort, null, null);
+                    if (result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1)))
+                    {
+                        client.EndConnect(result);
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
+        });
+
+        while (!task.IsCompleted) yield return null;
+        success = task.Result;
+
+        if (!success)
+        {
+            _connectionErrorMessage = "Warning: TCP Refused. Is 'adb reverse' running?";
+            // Persistent Yellow for the passive background check
+            UpdateStatusUI(_connectionErrorMessage, Color.yellow, true);
         }
     }
 }
