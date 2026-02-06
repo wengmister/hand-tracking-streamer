@@ -1,9 +1,11 @@
 # Privacy Policy for Hand Tracking Streamer
 
-**Last Updated:** 02/03/2026
+**Last Updated:** 02/06/2026
 
-## 1. Introduction
-Hand Tracking Streamer ("we," "our," or "us") respects your privacy. This Privacy Policy describes how we handle information when you use our hand-tracking streaming application on Meta Quest devices. We are committed to transparency regarding the data we access and how it is used.
+## 1. Introduction 
+This Privacy Policy applies to the Hand Tracking Streamer application (the “Application”) published on Meta Quest platforms.
+
+The Application is developed and published by Zhengyang Kris Weng (the “Developer,” “we,” “our,” or “us”). This Privacy Policy describes how we handle information when you use the Application on Meta Quest devices. We are committed to transparency regarding the data we access and how it is used.
 
 ## 2. Data Collection and Usage (VRC.Quest.Privacy.2 & 3)
 
@@ -47,4 +49,4 @@ Our application is not intended for use by children under the age of 13. We do n
 If you have any questions about this Privacy Policy, please contact us at:
 
 - **Email:** wengmister@gmail.com
-- **Website:** wengmister.github.io
+- **Website:** https://github.com/wengmister/hand-tracking-streamer

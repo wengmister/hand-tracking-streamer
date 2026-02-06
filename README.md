@@ -95,6 +95,11 @@ Not ready to teleop your robot yet? Check out the simple socket and the visualiz
 More teleop demo projects in [this repo](https://github.com/wengmister/quest_teleop_mujoco).
 
 
+## Contact
+
+For support or privacy inquiries related to Hand Tracking Streamer, please email: **wengmister@gmail.com**
+
+
 ## Citation
 If you find this app useful, please consider citing as:
 
