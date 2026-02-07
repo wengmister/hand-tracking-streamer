@@ -31,6 +31,14 @@
 <details>
 <summary>Click to expand changelog</summary>
 
+v1.0.4:
+- Added wireless TCP connection
+  - This performs more consistently than wireless UDP and is not affected by batching
+  - Now gracefully handles TCP connection interruption
+- Enabled menu button to pause and evoke main menu during streaming
+- Added network status indication on main menu
+- Now loads last used connection config automatically on start up
+
 v1.0.3:
 - Added landmark visualization for tracked hands
 
