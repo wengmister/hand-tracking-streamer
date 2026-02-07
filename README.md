@@ -88,6 +88,19 @@ See [CONNECTIONS](CONNECTIONS.md) page for detailed documentation on connections
 ### Quick Start
 Not ready to teleop your robot yet? Check out the simple socket and the visualizer script provided under [/scripts](/scripts) for quickly testing data streamed from your device.
 
+<details>
+<summary>Click to see visualizer in action</summary>
+
+Install dependencies, connect HTS, and simply run:
+
+```python
+python ./scripts/visualizer.py --protocol [YOUR PROTOCOL] --host [YOUR HOST IP] --port [YOUR PORT] --show-fingers
+```
+    
+![visualizer](https://github.com/user-attachments/assets/431c994a-9287-4641-acb3-22e96c83b925)
+
+</details>
+
 ## Demo
 
 ![wrist tracker](https://github.com/user-attachments/assets/b3a4ae36-00b1-4843-97d1-21ca7184bcd2)

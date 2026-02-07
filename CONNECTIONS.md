@@ -65,7 +65,7 @@ HTS can stream data via **wireless** UDP to a host on the same network as the Qu
 
 ## TCP connection - Wired
 
-HTS can also stream data via **wired** TCP using ADB. Connect your Quest to your machine with a data‑capable USB‑C cable.
+HTS can stream data via **wired** TCP using ADB. Connect your Quest to your machine with a data‑capable USB‑C cable.
 
 - Default target: `localhost:8000` via ADB reverse loopback.
 
