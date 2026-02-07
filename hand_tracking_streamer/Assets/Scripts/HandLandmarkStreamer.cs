@@ -184,16 +184,31 @@ public class HandLandmarkStreamer : MonoBehaviour
             if (_currentProtocol == 0) // UDP
             {
                 _udpClient = new UdpClient();
+                _udpClient.Client.SendBufferSize = 0; // Keep this optimization
                 _remoteEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+                
+                // FIX: Start listening for the Ping-Pong reply
+                _udpClient.BeginReceive(new AsyncCallback(OnUdpReceive), null);
                 // Log success to the configured HUD source
                 LogHUD($"UDP Ready: {ip}:{port}");
             }
-            else // TCP
+            else // TCP (Wired=1 OR Wireless=2)
             {
-                _tcpClient = new TcpClient();
+                // Force IPv4 to fix "Access Denied" on Android
+                _tcpClient = new TcpClient(AddressFamily.InterNetwork);
+                
+                // 1. Critical: Disable Nagle for speed
+                _tcpClient.NoDelay = true; 
+
+                // 2. Critical: Set Timeout so the app doesn't freeze on Write()
+                _tcpClient.SendTimeout = 1000; // 1 second max hang time
+                _tcpClient.ReceiveTimeout = 1000;
+
                 _tcpClient.Connect(ip, port);
                 _tcpStream = _tcpClient.GetStream();
-                LogHUD($"TCP Connected: {ip}:{port}");
+                
+                string type = _currentProtocol == 1 ? "Wired" : "WiFi";
+                LogHUD($"TCP({type}) Connected: {ip}:{port}");
             }
             _isInitialized = true;
         }
@@ -204,24 +219,52 @@ public class HandLandmarkStreamer : MonoBehaviour
         }
     }
 
-    private void SendData(string message)
+    // The Callback that processes the incoming "ACK" from Python
+    private void OnUdpReceive(IAsyncResult res)
     {
         try
         {
-            if (_currentProtocol == 0) // UDP
+            IPEndPoint remote = new IPEndPoint(IPAddress.Any, 0);
+            // Receive the dummy byte (and ignore it)
+            _udpClient.EndReceive(res, ref remote);
+            
+            // Listen for the next one immediately
+            _udpClient.BeginReceive(new AsyncCallback(OnUdpReceive), null);
+        }
+        catch { }
+    }
+    
+    private void SendData(string message)
+    {
+        // If we aren't supposed to be streaming, stop trying (prevents error spam)
+        if (AppManager.Instance != null && !AppManager.Instance.isStreaming) return;
+
+        try
+        {
+            if (_currentProtocol == 0 && _udpClient != null) // UDP
             {
                 byte[] data = Encoding.UTF8.GetBytes(message);
                 _udpClient.Send(data, data.Length, _remoteEndPoint);
             }
-            else if (_currentProtocol == 1 && _tcpStream != null && _tcpStream.CanWrite) // TCP
+            else if ((_currentProtocol == 1 || _currentProtocol == 2) && _tcpStream != null && _tcpStream.CanWrite)
             {
                 byte[] data = Encoding.UTF8.GetBytes(message + "\n");
                 _tcpStream.Write(data, 0, data.Length);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            // socket error occurred (Host closed, timeout, etc.)
+            Debug.LogError($"[Streamer] Write Failed: {ex.Message}");
+            
+            // 1. Close our side immediately
             Disconnect();
+            
+            // 2. Tell the UI to wake up and show the error
+            if (AppManager.Instance != null)
+            {
+                AppManager.Instance.HandleDisconnection("Host Closed Connection");
+            }
         }
     }
 

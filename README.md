@@ -19,7 +19,7 @@
   </a>
 
   <a href="https://github.com/wengmister/hand-tracking-streamer/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg" alt="Apache 2.0">
+    <img src="https://img.shields.io/badge/license-Apache%20License%202.0-green.svg" alt="Apache 2.0">
   </a>
 </p>
 
@@ -30,6 +30,14 @@
 
 <details>
 <summary>Click to expand changelog</summary>
+
+v1.0.4:
+- Added wireless TCP connection
+  - This performs more consistently than wireless UDP and is not affected by batching
+  - Now gracefully handles TCP connection interruption
+- Enabled menu button to pause and evoke main menu during streaming
+- Added network status indication on main menu
+- Now loads last used connection config automatically on start up
 
 v1.0.3:
 - Added landmark visualization for tracked hands
@@ -106,6 +114,11 @@ python ./scripts/visualizer.py --protocol [YOUR PROTOCOL] --host [YOUR HOST IP] 
 
 
 More teleop demo projects in [this repo](https://github.com/wengmister/quest_teleop_mujoco).
+
+
+## Contact
+
+For support or privacy inquiries related to Hand Tracking Streamer, please email: **wengmister@gmail.com**
 
 
 ## Citation

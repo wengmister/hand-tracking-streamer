@@ -52,14 +52,25 @@ Right landmarks:, 0.0000, 0.0000, 0.0000, -0.0275, -0.0197, 0.0362, -0.0438, -0.
 >[!IMPORTANT]
 > Data streamed from HTS follows Unity's left-hand coordinate convention. For most applications, you will want to flip the incoming data's Y-axis for the right-hand coordinate convention.
 
-## TCP connection
+## UDP connection
+
+HTS can stream data via **wireless** UDP to a host on the same network as the Quest headset.
+
+- Default target: `255.255.255.255:9000` (broadcast).
+- You can change the target IP and port from the in‑game/network configuration menu.
+
+>[!IMPORTANT] 
+>Network Performance Notice UDP streaming depends heavily on your local network conditions. Specifically, Wi-Fi networks with high DTIM intervals may cause message batching (latency spikes) due to headset power-saving features (see Issue [#4](https://github.com/wengmister/hand-tracking-streamer/issues/4)).    
+>For the more reliable performance, consider using the wired/wireless TCP connection.
+
+## TCP connection - Wired
 
 HTS can stream data via **wired** TCP using ADB. Connect your Quest to your machine with a data‑capable USB‑C cable.
 
 - Default target: `localhost:8000` via ADB reverse loopback.
 
 >[!NOTE]
-> TCP streaming over USB generally provides more consistent and reliable performance than wireless UDP. In practice, HTS over TCP tops out at around 70 Hz Quest hand tracking frequency.
+> TCP streaming over USB generally provides the most consistent and reliable performance. In practice, HTS over TCP tops out at around 70 Hz Quest hand tracking frequency.
 
 Set up the TCP reverse mapping before starting streaming from the HTS app:
 
@@ -73,16 +84,15 @@ You can verify that the reverse rule is active with:
 adb reverse --list
 ```
 
-## UDP connection
+## TCP connection - Wireless
 
-HTS can also stream data via **wireless** UDP to a host on the same network as the Quest headset.
+HTS can also stream data via **Wireless** TCP to a host on the same network as the Quest headset.
 
-- Default target: `255.255.255.255:9000` (broadcast).
-- You can change the target IP and port from the in‑game/network configuration menu.
+- Default target: `192.168.1.1:9000`
+- You will need to identify your host's local IPv4 address for connection in HTS
 
->[!IMPORTANT] 
->Network Performance Notice UDP streaming depends heavily on your local network conditions. Specifically, Wi-Fi networks with high DTIM intervals may cause message batching (latency spikes) due to headset power-saving features (see Issue [#4](https://github.com/wengmister/hand-tracking-streamer/issues/4)).    
->For the most reliable performance, consider using the wired TCP connection.
+Set up TCP server before starting streaming from the HTS app. Minimal example provided in `.\scripts\sockets.py`
+
 
 ## Troubleshooting
 
