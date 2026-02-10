@@ -6,20 +6,24 @@
 </div>
 <p align="center">
 
-  <a href="https://github.com/wengmister/hand-tracking-streamer/releases">
-    <img src="https://img.shields.io/github/v/release/wengmister/hand-tracking-streamer.svg?include_prereleases&sort=semver" alt="Releases">
+  <a href="https://sidequestvr.com/app/46236">
+   <img src="https://img.shields.io/badge/download-horizon_store-FF5757?labelColor=grey" alt="Horizon Store Release">
   </a>
 
   <a href="https://sidequestvr.com/app/46236">
    <img src="https://img.shields.io/badge/sideload-sidequest-FFD700?labelColor=grey" alt="SideQuest Release">
   </a>
 
-  <a href="https://sidequestvr.com/app/46236">
-   <img src="https://img.shields.io/badge/download-horizon_store-FF5757?labelColor=grey" alt="SideQuest Release">
-  </a>
-
   <a href="https://github.com/wengmister/hand-tracking-streamer/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-Apache%20License%202.0-green.svg" alt="Apache 2.0">
+  </a>
+
+  <a href="https://github.com/wengmister/hand-tracking-streamer/releases">
+    <img src="https://img.shields.io/github/v/release/wengmister/hand-tracking-streamer.svg?include_prereleases&sort=semver" alt="Releases">
+  </a>
+
+  <a href="https://github.com/wengmister/hand-tracking-sdk">
+    <img src="https://img.shields.io/badge/SDK-Python-BF40BF?labelColor=grey" alt="Python SDK">
   </a>
 </p>
 
@@ -86,7 +90,7 @@ Alternatively, you can build from source by loading `hand_tracking_streamer` pro
 See [CONNECTIONS](CONNECTIONS.md) page for detailed documentation on connections and data format. 
 
 ### Quick Start
-Not ready to teleop your robot yet? Check out the simple socket and the visualizer script provided under [/scripts](/scripts) for quickly testing data streamed from your device.
+Not ready to integrate into your system yet? Check out the simple socket and the visualizer script provided under [/scripts](/scripts) for quickly testing data streamed from your device.
 
 <details>
 <summary>Click to see visualizer in action</summary>
@@ -100,6 +104,18 @@ python ./scripts/visualizer.py --protocol [YOUR PROTOCOL] --host [YOUR HOST IP] 
 ![visualizer](https://github.com/user-attachments/assets/431c994a-9287-4641-acb3-22e96c83b925)
 
 </details>
+
+## Python SDK
+
+For integrating HTS data into your own pipelines, use the official [Python SDK](https://github.com/wengmister/hand-tracking-sdk). It provides typed data structures, parsers for the HTS packet format, and utilities for real-time visualization and logging, so you can go from streamed packets to usable hand pose data quickly. The package is published on [PyPI](https://pypi.org/project/hand-tracking-sdk/); see the [documentation](https://hand-tracking-sdk.readthedocs.io/en/latest/) for API details and examples.
+
+```bash
+# if using uv
+uv add hand-tracking-sdk
+
+# or install via pip
+pip install hand-tracking-sdk
+```
 
 ## Demo
 
