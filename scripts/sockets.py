@@ -16,6 +16,7 @@ import logging
 import select
 import signal
 import socket
+import threading
 import time
 
 
@@ -75,54 +76,69 @@ def run_udp_listener(host: str, port: int, tally: bool) -> None:
             pass
 
 
+def handle_tcp_connection(conn, addr, tally: bool) -> None:
+    """Handle a single TCP connection in a separate thread."""
+    with conn:
+        logging.info("Accepted connection from %s", addr)
+
+        msgs_this_second = 0
+        next_report = time.monotonic() + 1.0
+
+        try:
+            while True:
+                data = conn.recv(4096)
+                if not data:
+                    if tally and msgs_this_second:
+                        logging.info(
+                            "messages/sec (final interval) from %s: %d",
+                            addr,
+                            msgs_this_second,
+                        )
+                    logging.info("Connection from %s closed", addr)
+                    break
+
+                if tally:
+                    msgs_this_second += 1
+                else:
+                    try:
+                        message = data.decode("utf-8")
+                        for line in message.split("\n"):
+                            if line:
+                                logging.info("Message from %s: %s", addr, line)
+                    except UnicodeDecodeError:
+                        logging.info("Message from %s: %s", addr, data)
+
+                if tally:
+                    now = time.monotonic()
+                    if now >= next_report:
+                        logging.info("messages/sec from %s: %d", addr, msgs_this_second)
+                        msgs_this_second = 0
+                        next_report += 1.0
+        except Exception as e:
+            logging.error("Error handling connection from %s: %s", addr, e)
+
+
 def run_tcp_server(host: str, port: int, tally: bool) -> None:
-    """Listen for TCP connections from HTS and log or tally messages."""
+    """Listen for TCP connections from HTS and handle each in a separate thread."""
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_sock.bind((host, port))
-    server_sock.listen(1)
+    server_sock.listen(5)  # Allow multiple pending connections
 
     logging.info("TCP server listening on %s:%d", host, port)
+    logging.info("Waiting for connections from HTS (Quest)...")
+    logging.info("Remember to setup TCP reverse first: 'adb reverse tcp:%d tcp:%d'", port, port)
 
     try:
         while True:
-            logging.info("Waiting for a connection from HTS (Quest)...")
-            logging.info("Remember to setup TCP reverse first: \'adb reverse tcp:%d tcp:%d\'", port, port)
             conn, addr = server_sock.accept()
-            with conn:
-                logging.info("Accepted connection from %s", addr)
-
-                msgs_this_second = 0
-                next_report = time.monotonic() + 1.0
-
-                while True:
-                    data = conn.recv(4096)
-                    if not data:
-                        if tally and msgs_this_second:
-                            logging.info(
-                                "messages/sec (final interval): %d",
-                                msgs_this_second,
-                            )
-                        logging.info("Connection from %s closed", addr)
-                        break
-
-                    if tally:
-                        msgs_this_second += 1
-                    else:
-                        try:
-                            message = data.decode("utf-8")
-                            for line in message.split("\n"):
-                                if line:
-                                    logging.info("Message from %s: %s", addr, line)
-                        except UnicodeDecodeError:
-                            logging.info("Message from %s: %s", addr, data)
-
-                    if tally:
-                        now = time.monotonic()
-                        if now >= next_report:
-                            logging.info("messages/sec: %d", msgs_this_second)
-                            msgs_this_second = 0
-                            next_report += 1.0
+            # Handle each connection in a separate thread
+            thread = threading.Thread(
+                target=handle_tcp_connection,
+                args=(conn, addr, tally),
+                daemon=True
+            )
+            thread.start()
     finally:
         server_sock.close()
 
