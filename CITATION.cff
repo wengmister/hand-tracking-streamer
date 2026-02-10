@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+title: Hand Tracking Streamer
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - family-names: "Weng"
+    given-names: "Zhengyang Kris"
+    orcid: "https://orcid.org/0009-0001-2525-4109"
+description: "A lightweight hand telemetry utility that turns a Meta Quest headset into a precision controller for robotics teleoperation and motion capture."
+license: "Apache-2.0"
+repository-code: "https://github.com/wengmister/hand-tracking-streamer"
+repository-artifact: "https://www.meta.com/experiences/hand-tracking-streamer/26303946202523164/"
+contact:
+  - family-names: "Weng"
+    given-names: "Zhengyang Kris"
+    email: "wengmister@gmail.com"
+keywords:
+  - "hand tracking"
+  - "VR"
+  - "Meta Quest"
+  - "motion capture"
+  - "teleoperation"
+  - "robotics"
+  - "imitation learning"
+date-released: 2026-01-23
+version: "1.0.4"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.18601332"

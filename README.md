@@ -6,28 +6,24 @@
 </div>
 <p align="center">
 
-  <a href="https://sidequestvr.com/app/46236">
-   <img src="https://img.shields.io/badge/download-horizon_store-FF5757?labelColor=grey" alt="Horizon Store Release">
-  </a>
-
-  <a href="https://sidequestvr.com/app/46236">
-   <img src="https://img.shields.io/badge/sideload-sidequest-FFD700?labelColor=grey" alt="SideQuest Release">
+  <a href="https://www.meta.com/experiences/hand-tracking-streamer/26303946202523164/">
+   <img src="https://img.shields.io/badge/download-Meta_Quest_Store-FF5757?labelColor=grey" alt="Horizon Store Release">
   </a>
 
   <a href="https://github.com/wengmister/hand-tracking-streamer/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-Apache%20License%202.0-green.svg" alt="Apache 2.0">
+    <img src="https://img.shields.io/badge/license-Apache%20License%202.0-yellow.svg" alt="Apache 2.0">
   </a>
 
-  <a href="https://github.com/wengmister/hand-tracking-streamer/releases">
-    <img src="https://img.shields.io/github/v/release/wengmister/hand-tracking-streamer.svg?include_prereleases&sort=semver" alt="Releases">
+  <a href="https://zenodo.org/records/18601332">
+    <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18601332-blue.svg" alt="Zenodo DOI">
   </a>
 
   <a href="https://github.com/wengmister/hand-tracking-sdk">
-    <img src="https://img.shields.io/badge/SDK-Python-BF40BF?labelColor=grey" alt="Python SDK">
+    <img src="https://img.shields.io/badge/SDK-Python-green?labelColor=grey" alt="Python SDK">
   </a>
 </p>
 
-**Hand Tracking Streamer** is a lightweight, high-fidelity hand telemetry utility that turns a Meta Quest headset into a precision controller for robotics teleoperation and motion capture. Built on the Meta Interaction SDK, it streams 21-landmark hand data and 6-DoF wrist pose to a PC in real time over Wi-Fi using UDP for ultra-low latency or TCP for reliable data logging. The app supports left, right, or dual-hand modes with in-headset configuration, and includes a live log console and phantom hand visualization for debugging. Data is sent as structured packets of joint positions and orientations in Unity world space, making it suitable for robot control, imitation learning, and gesture-based prototyping.
+**Hand Tracking Streamer** is a lightweight hand telemetry utility that turns a Meta Quest headset into a precision controller for robotics teleoperation and motion capture. Built on the Meta Interaction SDK, it streams 21-landmark hand data and 6-DoF wrist pose to a PC in real time over Wi-Fi using UDP for ultra-low latency or TCP for reliable data logging. The app supports left, right, or dual-hand modes with in-headset configuration, and includes a live log console and phantom hand visualization for debugging. Data is sent as structured packets of joint positions and orientations in Unity world space, making it suitable for robot control, imitation learning, and gesture-based prototyping.
 
 
 ### What's New!
@@ -75,15 +71,16 @@ v1.0.0:
 
 ## Deployment
 
-You can sideload the app with [SideQuest](https://sidequestvr.com/app/46236/hand-tracking-streamer) for free, or directly upload `hand_tracking_streamer.apk` via ADB to your device.
+### AppStore Available
+
+You can download the app from [Meta Quest Store](https://www.meta.com/experiences/hand-tracking-streamer/26303946202523164), or sideload the app with [SideQuest](https://sidequestvr.com/app/46236/hand-tracking-streamer) for free.
+
+### Local Builds
+
+Alternatively, you can build from source by loading `hand_tracking_streamer` project in [Unity](https://unity.com/download) or directly upload `hand_tracking_streamer.apk` via ADB to your device.
 
 >[!NOTE]
-> Before direct upload, make sure your device is set to [developer mode](https://developers.meta.com/horizon/documentation/native/android/mobile-device-setup/), and allow USB connection.
-
-Alternatively, you can build from source by loading `hand_tracking_streamer` project in [Unity](https://unity.com/download).
-
->[!NOTE]
-> This app is built and tested on Unity 6000.0.65f1
+>Before direct upload, make sure your device is set to [developer mode](https://developers.meta.com/horizon/documentation/native/android/mobile-device-setup/), and allow USB connection. This app is built and tested on Unity 6000.0.65f1
 
 ## Data Streaming
 
@@ -138,16 +135,13 @@ For support or privacy inquiries related to Hand Tracking Streamer, please email
 
 
 ## Citation
-If you find this app useful, please consider citing as:
+If you use Hand Tracking Streamer in your research or project, please cite it as:
 
-      @misc{weng2025levr,
-            title={LeVR: A Modular VR Teleoperation Framework for Imitation Learning in Dexterous Manipulation}, 
-            author={Zhengyang Kris Weng and Matthew L. Elwin and Han Liu},
-            year={2025},
-            eprint={2509.14349},
-            archivePrefix={arXiv},
-            primaryClass={cs.RO},
-            url={https://arxiv.org/abs/2509.14349}, 
+      @software{weng2026hts,
+            author={Weng, Zhengyang K.},
+            title={Hand Tracking Streamer: Meta Quest VR App for Motion Capture and Teleoperation},
+            url={https://github.com/wengmister/hand-tracking-streamer},
+            year={2026}
       }
 
 
