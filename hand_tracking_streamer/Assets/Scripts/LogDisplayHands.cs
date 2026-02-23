@@ -1,11 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using System.Text;
 using System.Collections.Generic;
 
 public class LogDisplayHands : MonoBehaviour
 {
-    [SerializeField] private Text logText;
+    [SerializeField] private TMP_Text logText;
+    [SerializeField] private Text legacyLogText;
 
     [SerializeField] private string logSource; 
 
@@ -32,15 +34,21 @@ public class LogDisplayHands : MonoBehaviour
         // Mode 2 = Right Hand
         int mode = AppManager.Instance.SelectedHandMode;
 
-        if (mode == 0) 
+        if (mode == 0)
         {
-            // Both hands selected -> We need space for 2 messages (one per hand)
+            // Both hands selected -> space for left + right.
             _currentMaxMessages = 2;
         }
-        else 
+        else
         {
-            // Single hand selected -> We only need the latest single message
+            // Single hand selected -> latest single hand message.
             _currentMaxMessages = 1;
+        }
+
+        // When head tracking is enabled, reserve one additional line entry.
+        if (AppManager.Instance.TrackHeadPose)
+        {
+            _currentMaxMessages += 1;
         }
     }
 
@@ -53,7 +61,7 @@ public class LogDisplayHands : MonoBehaviour
         
         if (messages == null || messages.Count == 0)
         {
-            logText.text = ""; 
+            SetText(string.Empty);
             return;
         }
 
@@ -70,6 +78,18 @@ public class LogDisplayHands : MonoBehaviour
         }
 
         // 5. Update UI
-        logText.text = _sb.ToString();
+        SetText(_sb.ToString());
+    }
+
+    private void SetText(string text)
+    {
+        if (logText != null)
+        {
+            logText.text = text;
+        }
+        if (legacyLogText != null)
+        {
+            legacyLogText.text = text;
+        }
     }
 }

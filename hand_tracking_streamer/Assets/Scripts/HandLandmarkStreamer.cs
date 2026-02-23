@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System;
+using System.Diagnostics;
 
 public class HandLandmarkStreamer : MonoBehaviour
 {
@@ -39,6 +40,10 @@ public class HandLandmarkStreamer : MonoBehaviour
     // Optimization: Cache StringBuilders
     private StringBuilder _sbPacket = new StringBuilder(2048);
     private StringBuilder _sbLog = new StringBuilder(2048);
+
+    // Debug timing metadata (per-hand stream)
+    private uint _frameId = 0;
+    private static readonly double _ticksToNs = 1_000_000_000.0 / Stopwatch.Frequency;
     
     // Indices for the 21 standard landmarks (Sending)
     private readonly int[] _streamedJoints = {
@@ -109,11 +114,33 @@ public class HandLandmarkStreamer : MonoBehaviour
         _sbPacket.Clear();
         _sbLog.Clear();
 
+        bool addDebugHeaderMeta = AppManager.Instance != null && AppManager.Instance.ShowDebugInfo;
+
+        uint frameId = 0;
+        ulong sendTimestampNs = 0;
+
+        if (addDebugHeaderMeta)
+        {
+            _frameId++;
+            frameId = _frameId;
+            // Single timestamp reused for both headers in this packet for deterministic pairing
+            sendTimestampNs = GetMonotonicTimestampNs();
+        }
+
         // --- 1. PROCESS WRIST ---
         if (_hand.GetRootPose(out Pose rootPose))
         {
             // Prepare Network Packet
-            _sbPacket.Append(_handSide).Append(" wrist:, ");
+            if (addDebugHeaderMeta)
+            {
+                AppendHeaderWithMeta(_sbPacket, "wrist", frameId, sendTimestampNs);
+                _sbPacket.Append(", ");
+            }
+            else
+            {
+                _sbPacket.Append(_handSide).Append(" wrist:, ");
+            }
+
             AppendVector3(_sbPacket, rootPose.position);
             _sbPacket.Append(", ");
             AppendQuaternion(_sbPacket, rootPose.rotation);
@@ -121,10 +148,8 @@ public class HandLandmarkStreamer : MonoBehaviour
             // Prepare HUD Log
             if (_logToHUD)
             {
-                // Added _handSide label to log so you know which hand is which on the shared screen
                 _sbLog.AppendLine($"=== [{_handSide}] Wrist ==="); 
                 _sbLog.AppendLine($"Pos: {rootPose.position.ToString("F3")}");
-                // Optional: Comment out rotation if it clutters the shared screen too much
                 // _sbLog.AppendLine($"Rot: {rootPose.rotation.eulerAngles.ToString("F0")}");
             }
         }
@@ -133,7 +158,15 @@ public class HandLandmarkStreamer : MonoBehaviour
         if (_hand.GetJointPosesFromWrist(out ReadOnlyHandJointPoses joints))
         {
             // Network Packet
-            _sbPacket.Append("\n").Append(_handSide).Append(" landmarks:");
+            _sbPacket.Append("\n");
+            if (addDebugHeaderMeta)
+            {
+                AppendHeaderWithMeta(_sbPacket, "landmarks", frameId, sendTimestampNs);
+            }
+            else
+            {
+                _sbPacket.Append(_handSide).Append(" landmarks:");
+            }
             
             foreach (int index in _streamedJoints)
             {
@@ -163,7 +196,6 @@ public class HandLandmarkStreamer : MonoBehaviour
                     }
                 }
                 
-                // Final Push to HUD using the CUSTOM SOURCE
                 LogHUD(_sbLog.ToString());
             }
         }
@@ -184,24 +216,17 @@ public class HandLandmarkStreamer : MonoBehaviour
             if (_currentProtocol == 0) // UDP
             {
                 _udpClient = new UdpClient();
-                _udpClient.Client.SendBufferSize = 0; // Keep this optimization
+                _udpClient.Client.SendBufferSize = 0;
                 _remoteEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
                 
-                // FIX: Start listening for the Ping-Pong reply
                 _udpClient.BeginReceive(new AsyncCallback(OnUdpReceive), null);
-                // Log success to the configured HUD source
                 LogHUD($"UDP Ready: {ip}:{port}");
             }
             else // TCP (Wired=1 OR Wireless=2)
             {
-                // Force IPv4 to fix "Access Denied" on Android
                 _tcpClient = new TcpClient(AddressFamily.InterNetwork);
-                
-                // 1. Critical: Disable Nagle for speed
                 _tcpClient.NoDelay = true; 
-
-                // 2. Critical: Set Timeout so the app doesn't freeze on Write()
-                _tcpClient.SendTimeout = 1000; // 1 second max hang time
+                _tcpClient.SendTimeout = 1000;
                 _tcpClient.ReceiveTimeout = 1000;
 
                 _tcpClient.Connect(ip, port);
@@ -219,16 +244,12 @@ public class HandLandmarkStreamer : MonoBehaviour
         }
     }
 
-    // The Callback that processes the incoming "ACK" from Python
     private void OnUdpReceive(IAsyncResult res)
     {
         try
         {
             IPEndPoint remote = new IPEndPoint(IPAddress.Any, 0);
-            // Receive the dummy byte (and ignore it)
             _udpClient.EndReceive(res, ref remote);
-            
-            // Listen for the next one immediately
             _udpClient.BeginReceive(new AsyncCallback(OnUdpReceive), null);
         }
         catch { }
@@ -236,7 +257,6 @@ public class HandLandmarkStreamer : MonoBehaviour
     
     private void SendData(string message)
     {
-        // If we aren't supposed to be streaming, stop trying (prevents error spam)
         if (AppManager.Instance != null && !AppManager.Instance.isStreaming) return;
 
         try
@@ -254,16 +274,10 @@ public class HandLandmarkStreamer : MonoBehaviour
         }
         catch (Exception ex)
         {
-            // socket error occurred (Host closed, timeout, etc.)
-            Debug.LogError($"[Streamer] Write Failed: {ex.Message}");
-            
-            // 1. Close our side immediately
             Disconnect();
-            
-            // 2. Tell the UI to wake up and show the error
             if (AppManager.Instance != null)
             {
-                AppManager.Instance.HandleDisconnection("Host Closed Connection");
+                AppManager.Instance.HandleDisconnection("Host Closed Connection:" + ex.Message);
             }
         }
     }
@@ -281,6 +295,26 @@ public class HandLandmarkStreamer : MonoBehaviour
     }
 
     // --- UTILITY HELPERS ---
+    private static ulong GetMonotonicTimestampNs()
+    {
+        return (ulong)(Stopwatch.GetTimestamp() * _ticksToNs);
+    }
+
+    private void AppendHeaderWithMeta(StringBuilder sb, string section, uint frameId, ulong sendTimestampNs)
+    {
+        // Matches normal message capitalization style ("Left wrist", "Right landmarks")
+        // Example:
+        // Left wrist | f = 123 | t = 123456789012345:
+        sb.Append(_handSide)
+          .Append(" ")
+          .Append(section)
+          .Append(" | f = ")
+          .Append(frameId)
+          .Append(" | t = ")
+          .Append(sendTimestampNs)
+          .Append(":");
+    }
+
     private void AppendVector3(StringBuilder sb, Vector3 vec)
     {
         sb.Append(vec.x.ToString("F4")).Append(", ")
@@ -313,7 +347,6 @@ public class HandLandmarkStreamer : MonoBehaviour
     {
         if (_logToHUD && LogManager.Instance != null)
         {
-            // Use the specific HUD Source name instead of the HandSide
             LogManager.Instance.Log(_hudLogSource, msg);
         }
     }
