@@ -31,6 +31,18 @@
 <details>
 <summary>Click to expand changelog</summary>
 
+
+v1.1.0:
+
+ - Added video streaming from host 
+ - Added head tracking frame 
+ - Added debug info for frame header and HUD display 
+ - Now uses numerical keyboard for IP and Port input 
+ - HUD now uses TMP to improve readability
+
+![immersive_sim_sm](https://github.com/user-attachments/assets/f77df332-ad51-4f36-aca7-a646c4a17d73)
+
+
 v1.0.4:
 - Added wireless TCP connection
   - This performs more consistently than wireless UDP and is not affected by batching
@@ -116,18 +128,16 @@ pip install hand-tracking-sdk
 
 ## Demo
 
-![wrist tracker](https://github.com/user-attachments/assets/b3a4ae36-00b1-4843-97d1-21ca7184bcd2)
+### landmark visualization
+<img src="https://github.com/user-attachments/assets/3686b1bc-07d2-4517-bcc0-bbecb382df78" width="500"><br>
 
+### immersive simulation
+<img src="https://github.com/user-attachments/assets/cc435e28-08a7-4f6c-8a25-6a36530657a2" width="500"><br>
 
-![mjc_teleop](https://github.com/user-attachments/assets/033fc24b-be45-4ad3-8db2-b329871a4c70)
+### dexterous retargeting
+<img src="https://github.com/user-attachments/assets/bcbbbfcc-f3f8-4f73-883c-ea7acac19d03" width="500">    
 
-
-![dex_retarget](https://github.com/user-attachments/assets/bcbbbfcc-f3f8-4f73-883c-ea7acac19d03)
-
-
-
-More teleop demo projects in [this repo](https://github.com/wengmister/quest_teleop_mujoco).
-
+Find more examples in SDK [here](https://github.com/wengmister/hand-tracking-sdk/tree/main/examples)
 
 ## Contact
 
