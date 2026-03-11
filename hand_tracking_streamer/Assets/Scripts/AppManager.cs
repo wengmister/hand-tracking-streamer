@@ -26,6 +26,16 @@ public class AppManager : MonoBehaviour
     public Toggle visualizationToggle; 
     public bool ShowLandmarks => visualizationToggle != null && visualizationToggle.isOn;
 
+    [Header("Debug and Experimental")]
+    public Toggle debugInfoToggle;
+    public bool ShowDebugInfo => debugInfoToggle != null && debugInfoToggle.isOn;
+
+    public Toggle videoStreamToggle;
+    public bool ShowVideoStream => videoStreamToggle != null && videoStreamToggle.isOn;
+
+    public Toggle headPoseToggle;
+    public bool TrackHeadPose => headPoseToggle != null && headPoseToggle.isOn;
+
     [Header("Interaction Settings")]
     public GameObject[] rayInteractors;
 
@@ -70,9 +80,9 @@ public class AppManager : MonoBehaviour
 
         ipInputField.onValueChanged.AddListener(delegate { ClearError(); });
         portInputField.onValueChanged.AddListener(delegate { ClearError(); });
-
         // Load saved config (if any)
         LoadConfig();
+        ApplyVideoCanvasVisibility();
     }
 
     private void SaveConfig()
@@ -205,7 +215,7 @@ private void OnProtocolChanged(int index)
         }
     }
 
-    public void OnStartStreaming()
+    public async void OnStartStreaming()
     {
         ClearError();
         ServerIP = ipInputField.text;
@@ -282,6 +292,49 @@ private void OnProtocolChanged(int index)
         ToggleRays(false);
         UpdateHandVisuals(SelectedHandMode);
         isStreaming = true;
+
+        // Optional host->Quest video plane (separate from telemetry transport)
+        if (ShowVideoStream)
+        {
+            if (string.Equals(ServerIP, "255.255.255.255", StringComparison.Ordinal))
+            {
+                HandleDisconnection("Video requires a concrete host IP. Switch protocol to TCP/Wireless or enter host LAN IP.");
+                return;
+            }
+
+            VideoStreamManager manager = FindFirstObjectByType<VideoStreamManager>();
+            if (manager == null)
+            {
+                HandleDisconnection("Video manager missing from scene.");
+                return;
+            }
+
+            bool ok;
+            try
+            {
+                ok = await manager.StartVideoSession(
+                    ServerIP,
+                    8765,
+                    "720p30",
+                    false
+                );
+            }
+            catch (Exception ex)
+            {
+                ok = false;
+                Debug.LogError($"[Video] Start failed: {ex.Message}");
+            }
+
+            if (!ok)
+            {
+                HandleDisconnection("Video session failed to start.");
+                return;
+            }
+        }
+        else
+        {
+            ApplyVideoCanvasVisibility();
+        }
     }
 
     // Called by the Streamer when the socket dies
@@ -310,12 +363,16 @@ private void OnProtocolChanged(int index)
         _connectionErrorMessage = $"TCP Disconnected: {errorMsg}"; // persistent
         UpdateStatusUI(_connectionErrorMessage, Color.yellow, true);
         SendLog($"Connection dropped: {errorMsg}");
+        StopVideoSessionAsync("disconnection");
+        ApplyVideoCanvasVisibility();
     }
 
     public void StopStreaming()
     {
         isStreaming = false;
         ClearError();
+        StopVideoSessionAsync("user_stop");
+        ApplyVideoCanvasVisibility();
 
         // Re-enable UI and Rays for interaction
         if (menuPanel != null) 
@@ -327,6 +384,22 @@ private void OnProtocolChanged(int index)
         ToggleRays(true);
 
         SendLog("Streaming stopped by user.");
+    }
+
+    private async void StopVideoSessionAsync(string reason)
+    {
+        VideoStreamManager manager = FindFirstObjectByType<VideoStreamManager>();
+        if (manager != null)
+        {
+            try
+            {
+                await manager.StopVideoSession(reason);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Video] Stop failed: {ex.Message}");
+            }
+        }
     }
 
     private void UpdateHandVisuals(int mode)
@@ -353,6 +426,16 @@ private void OnProtocolChanged(int index)
             LogManager.Instance.Log(targetLogSource, message);
         else
             Debug.Log($"[{targetLogSource}] {message}");
+    }
+
+    private void ApplyVideoCanvasVisibility()
+    {
+        VideoStreamManager manager = FindFirstObjectByType<VideoStreamManager>();
+        if (manager == null)
+        {
+            return;
+        }
+        manager.SetVideoUiVisible(isStreaming && ShowVideoStream);
     }
 
     private System.Collections.IEnumerator QuickTCPCheck()
